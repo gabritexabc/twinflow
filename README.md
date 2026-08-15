@@ -162,3 +162,9 @@ serve.mjs         static server + SMTP email API (nodemailer)
 - Logistics timestamps (factory out / site arrival / lift start / fixed) to compute
   demurrage and cycle-time KPIs automatically
 - Weather feed (IPMA) to correlate productivity with wind/rain conditions
+
+## License
+
+© 2026 José Gabriel Andrade Teixeira — **all rights reserved** (todos os direitos
+reservados). The code is published for reading and reference; see [LICENSE](LICENSE)
+for what that means in practice.

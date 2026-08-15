@@ -10,7 +10,8 @@
     "node": ">=20"
   },
   "author": "José Gabriel Andrade Teixeira",
-  "license": "ISC",
+  "license": "UNLICENSED",
+  "private": true,
   "dependencies": {
     "nodemailer": "^9.0.3",
     "sql.js": "^1.14.1"
