@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TwinFlow — Industrialized Construction Manager</title>
+<script>
+// FIRST thing in the document, deliberately: a browser that has never signed in here
+// used to paint the whole app shell, sit there empty for the second or two that
+// GET api/me takes, and only then bounce to the sign-in page. Placed above the
+// stylesheet and the preloads so a signed-out visitor does not download the app at all.
+//
+// This flag is a rendering hint, never a permission: the session cookie is HttpOnly
+// (rightly), so the client cannot tell on its own. Forging the flag only buys an
+// empty shell — every request still gets a 401 from the server, which lands you back
+// on the sign-in page.
+try {
+  if (!localStorage.getItem('twinflow.signedIn')) location.replace('login.html');
+} catch { /* private mode — the old behaviour, one flash */ }
+</script>
+<!-- the two variable fonts are only discovered once the stylesheet has been parsed;
+     asking for them here overlaps the two fetches. They are already woff2 and cached
+     immutably, so this is purely about when they start, not how big they are. -->
+<link rel="preload" href="vendor/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="vendor/fonts/plex-var.woff2" as="font" type="font/woff2" crossorigin>
+<!-- Installable on a phone's home screen. Every path in the manifest is relative, so the
+     same file works at the domain root and under the /twinflow sub-path in production.
+     It is manifest.json and not .webmanifest on purpose: nginx serves static files here
+     without asking the app, and it knows .json — an unknown extension goes out as
+     application/octet-stream and the manifest is silently ignored. -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16212f">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TwinFlow">
+<link rel="stylesheet" href="css/styles.css">
+<!-- Without these the browser only discovers store/i18n/files AFTER app.js has been
+     downloaded and parsed, then fetches them — a three-deep waterfall costing two
+     extra round trips on a mobile connection. They are declared here so all four
+     first-party modules are requested in parallel with the HTML still streaming.
+     The 3D stack is deliberately NOT preloaded: it is 6.4 MB and loads on demand. -->
+<link rel="modulepreload" href="js/app.js">
+<link rel="modulepreload" href="js/store.js">
+<link rel="modulepreload" href="js/i18n.js">
+<link rel="modulepreload" href="js/files.js">
+<script>
+// The dictionary to load is only known after the account is fetched, which would
+// cost an extra round trip. The last language used on this device is a reliable
+// guess, so preload it now; a first-time visitor simply skips this.
+try {
+  // falls back to the choice made on the sign-in page, so the very first load
+  // after logging in is covered too
+  const l = localStorage.getItem('twinflow.lang') || localStorage.getItem('twinflow.loginLang');
+  if (l === 'en' || l === 'pt') {
+    document.write('<link rel="modulepreload" href="js/lang/' + l + '.js">');
+  }
+} catch { /* private mode — one extra round trip, nothing worse */ }
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/three-addons/",
+    "web-ifc": "./vendor/web-ifc-api.js"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">TF</div>
+      <div>
+        <div class="brand-name">TwinFlow</div>
+        <div class="brand-sub" data-i18n="brand.tagline">Digital thread · off-site construction</div>
+      </div>
+    </div>
+    <nav id="nav">
+      <button class="nav-btn active" data-view="dashboard" data-i18n-title="nav.dashboard" title="Dashboard">📊 <span class="nav-label" data-i18n="nav.dashboard">Dashboard</span></button>
+      <button class="nav-btn" data-view="model" data-i18n-title="nav.model" title="Model & Quantities">🏗️ <span class="nav-label" data-i18n="nav.model">Model &amp; Quantities</span></button>
+      <button class="nav-btn" data-view="orders" data-i18n-title="nav.orders" title="Production Requests">📦 <span class="nav-label" data-i18n="nav.orders">Production Requests</span></button>
+      <button class="nav-btn" data-view="planning" data-i18n-title="nav.planning" title="Planning">📅 <span class="nav-label" data-i18n="nav.planning">Planning</span></button>
+      <button class="nav-btn" data-view="stock" data-i18n-title="nav.stock" title="Stock">🧱 <span class="nav-label" data-i18n="nav.stock">Stock</span></button>
+      <button class="nav-btn" data-view="assembly" data-i18n-title="nav.assembly.title" title="Site assembly progress">👷 <span class="nav-label" data-i18n="nav.assembly">Assembly</span></button>
+      <button class="nav-btn" data-view="activity" data-i18n-title="nav.activity.title" title="Activity log">📜 <span class="nav-label" data-i18n="nav.activity">Activity</span></button>
+      <button class="nav-btn" data-view="scan" data-i18n-title="nav.scan.title" title="Scan element QR">📷 <span class="nav-label" data-i18n="nav.scan">Scan</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="btn-config" class="ghost small" data-i18n-title="nav.config" title="Configuration">⚙ <span class="nav-label" data-i18n="nav.config">Configuration</span></button>
+      <input type="file" id="import-input" accept=".json" hidden>
+      <div class="app-version" id="app-version" title=""></div>
+      <div class="copyright" data-i18n="footer.rights">© 2026 José Gabriel Andrade Teixeira — All rights reserved.</div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <header id="topbar">
+      <h1 id="view-title">Dashboard</h1>
+      <div class="topbar-right">
+        <label class="role-label" data-i18n="topbar.project">Project:</label>
+        <select id="project-select" data-i18n-title="topbar.projectTitle" title="Active project — quantities and new requests use this project"></select>
+        <button id="user-chip" class="user-chip" data-i18n-title="topbar.profileTitle" title="Profile & sign out">
+          <span class="avatar" id="user-avatar">·</span>
+          <span class="user-chip-text">
+            <span id="user-name">…</span>
+            <span id="user-role" class="muted"></span>
+          </span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Shown for as long as the server is unreachable. A toast was the first attempt and
+         it is the wrong instrument: it disappears after a few seconds, and "what you are
+         looking at may be out of date" has to stay true on screen for as long as it is
+         true. Hidden by default; the app never removes it on its own. -->
+    <div id="offline-bar" class="offline-bar hidden" role="status" aria-live="polite"></div>
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div id="dashboard-content"></div>
+      <input type="file" id="dash-ifc-input" accept=".ifc" hidden>
+    </section>
+
+    <!-- MODEL + QUANTITIES (tabbed) -->
+    <section class="view" id="view-model">
+      <div class="view-tabs">
+        <button class="vtab active" data-mtab="model" data-i18n="tabs.model">🏗️ IFC Model</button>
+        <button class="vtab" data-mtab="qto" data-i18n="tabs.qto">📐 Quantities takeoff</button>
+      </div>
+      <div id="mtab-model">
+        <div class="model-toolbar">
+          <!-- a <label> is not focusable, so the view's primary action could be reached
+               with a mouse only; role+tabindex put it in the tab order and js/app.js
+               forwards Enter/Space to the click the label already performs -->
+          <label class="btn primary" for="ifc-input" id="btn-open-ifc" role="button" tabindex="0"><span data-i18n="model.openFile">📂 Open IFC file…</span></label>
+          <input type="file" id="ifc-input" accept=".ifc" hidden>
+          <button class="btn" id="btn-geom" data-i18n="model.geomButton">🧩 3D elements…</button>
+          <label class="btn" data-i18n-title="model.statusColorsTitle" title="Paint each element with the status of its production request">
+            <input type="checkbox" id="status-colors" checked> <span data-i18n="model.statusColors">🎨 Status colors</span>
+          </label>
+          <button class="btn" id="btn-4d" data-i18n-title="fourd.buttonTitle" title="Replay the model over time: each element wears the status it held on the date shown"><span data-i18n="fourd.button">🎬 4D</span></button>
+          <span id="model-status" class="muted"></span>
+        </div>
+        <!-- 4D playback: hidden until the button above turns it on. The play button's
+             own label is a ▶/⏸ glyph written by js/app.js, so it carries no data-i18n -->
+        <div id="fourd-bar" class="fourd-bar hidden">
+          <button class="btn small primary" id="fourd-play">▶</button>
+          <input type="range" id="fourd-range" class="fourd-range" min="0" max="1" step="1" value="0">
+          <span id="fourd-date" class="fourd-date">—</span>
+          <select id="fourd-speed" class="fourd-speed" data-i18n-title="fourd.speedTitle" title="Playback speed">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+          <label class="filter-item" data-i18n-title="fourd.hideFutureTitle" title="Hide the elements that had no production request yet on that date">
+            <input type="checkbox" id="fourd-hide-future"> <span data-i18n="fourd.hideFuture">Hide not yet ordered</span>
+          </label>
+        </div>
+        <div id="fourd-changes" class="fourd-changes hidden"></div>
+        <div id="status-legend" class="status-legend hidden"></div>
+        <div class="model-layout">
+          <div id="viewer-container">
+            <canvas id="viewer-canvas"></canvas>
+            <div id="viewer-empty" class="viewer-empty" data-i18n="model.openToView">Open an IFC file to view the 3D model</div>
+            <div id="viewer-loading" class="viewer-loading hidden">
+              <div class="vl-bar"><div class="vl-fill"></div></div>
+              <div class="vl-label" id="viewer-loading-label"></div>
+            </div>
+          </div>
+          <div id="element-panel">
+            <div id="model-filters"></div>
+            <h3 data-i18n="model.element">Element</h3>
+            <div id="element-info" class="muted" data-i18n="model.clickToInspect">Click an element in the 3D view to inspect it.</div>
+          </div>
+        </div>
+      </div>
+      <div id="mtab-qto" class="hidden">
+        <div id="qto-content"></div>
+      </div>
+    </section>
+
+    <!-- ORDERS -->
+    <section class="view" id="view-orders">
+      <div id="orders-content"></div>
+    </section>
+
+    <!-- PLANNING (takt + analytics) -->
+    <section class="view" id="view-planning">
+      <div id="planning-content"></div>
+    </section>
+
+    <!-- WAREHOUSE / COMPONENT STOCK -->
+    <section class="view" id="view-stock">
+      <div id="stock-content"></div>
+    </section>
+
+    <!-- PARTIES -->
+    <section class="view" id="view-parties">
+      <div id="parties-content"></div>
+    </section>
+
+    <!-- USERS (admin) -->
+    <section class="view" id="view-users">
+      <div id="users-content"></div>
+    </section>
+
+    <!-- ASSEMBLY (site progress per element, recorded in series) -->
+    <section class="view" id="view-assembly">
+      <div id="assembly-content"></div>
+    </section>
+
+    <!-- ACTIVITY (the digital thread: every recorded act, newest first) -->
+    <section class="view" id="view-activity">
+      <div id="activity-content"></div>
+    </section>
+
+    <!-- SCAN -->
+    <section class="view" id="view-scan">
+      <div class="grid-2">
+        <div class="card">
+          <h3 data-i18n="scan.title">Scan element label</h3>
+          <video id="scan-video" playsinline muted style="width:100%;border-radius:8px;background:#10161f;min-height:200px"></video>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn primary" id="btn-scan-start" data-i18n="scan.startCamera">📷 Start camera</button>
+            <button class="btn" id="btn-scan-stop" disabled data-i18n="scan.stop">Stop</button>
+          </div>
+          <div class="form-row" style="margin-top:14px">
+            <label data-i18n="scan.manualTitle">Or pick the element manually (no QR needed)</label>
+            <select id="scan-order" style="margin-bottom:8px"></select>
+            <select id="scan-element" disabled></select>
+          </div>
+          <div class="form-row" style="margin-top:10px">
+            <label data-i18n="scan.orType">Or type the element GUID from the label</label>
+            <div style="display:flex;gap:8px">
+              <input type="text" id="scan-manual" placeholder="e.g. 2O2Fr$t4X7Zf8NOew3FLD1" style="flex:1">
+              <button class="btn" id="btn-scan-lookup" data-i18n="scan.find">Find</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 data-i18n="scan.elementTitle">Element</h3>
+          <div id="scan-info" class="muted" data-i18n="scan.hint">Scan a QR label or enter its GUID to record factory, logistics and assembly events for that exact element.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Modal -->
+<div id="modal-backdrop" class="hidden">
+  <div id="modal">
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- every confirmation in the app lands here, and a screen reader was never told about
+     any of them; role=status announces the text without stealing focus -->
+<div id="toast" class="hidden" role="status" aria-live="polite"></div>
+
+<!-- global busy indicator: visible in any view during IFC parse / upload -->
+<div id="busy" class="hidden" aria-live="polite">
+  <div class="busy-bar"><div class="busy-fill" id="busy-fill"></div></div>
+  <div class="busy-pill"><span class="busy-spin"></span><span id="busy-label"></span></div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

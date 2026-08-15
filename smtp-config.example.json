@@ -1,0 +1,9 @@
+{
+  "host": "smtp.gmail.com",
+  "port": 465,
+  "secure": true,
+  "user": "your.email@gmail.com",
+  "pass": "your-16-character-app-password",
+  "from": "IFCFlow <your.email@gmail.com>",
+  "test": false
+}

@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+
+# server-side data (created automatically at runtime — do not commit real project data)
+data/
+models/
+
+# secrets — copy smtp-config.example.json instead
+smtp-config.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
+
+# local tool config / build artifacts — not project source
+.claude/settings.local.json
+# machine-specific absolute paths; each developer keeps their own
+.claude/launch.json
+deploy-update.zip
+hotfix-*.zip
+
+# demo dataset export (regenerated on demand)
+twinflow-demo-data.json

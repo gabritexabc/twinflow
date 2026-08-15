@@ -1,0 +1,997 @@
+/* TwinFlow — professional light theme. Inter body, IBM Plex Sans headings/figures,
+   dark navy sidebar, white surfaces on a cool gray canvas.
+
+   The visual layer is driven by the token block below. The rule everywhere else is:
+   no raw px for type, spacing, radius or elevation, and no raw hex for colour — if a
+   value is not in the scale, the scale is wrong, not the component. That is what keeps
+   a 4000-line app looking like one program instead of forty screens.
+
+   Token names from the first version (--bg, --bg2, --bg3, --card, --line, --line2,
+   --radius, --shadow, --heading, --accent…) are all still defined: JavaScript and 263
+   inline styles reference them by name, so they are kept as aliases onto the new scale
+   rather than renamed. */
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../vendor/fonts/inter-var.woff2') format('woff2');
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../vendor/fonts/plex-var.woff2') format('woff2');
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+
+:root {
+  /* ----- neutral ramp: cool, low contrast, evenly stepped ----- */
+  --n-0: #ffffff;
+  --n-25: #fafbfc;
+  --n-50: #f4f6f9;
+  --n-100: #eceff4;   /* app canvas */
+  --n-200: #e0e5eb;   /* hairline */
+  --n-300: #cfd6df;   /* control border */
+  --n-400: #b3bdc9;   /* strong border / disabled text */
+  --n-500: #5f6b7a;   /* secondary text — AA on white */
+  --n-700: #38434f;
+  --n-900: #17212b;   /* primary text */
+
+  /* ----- surfaces & lines (aliases kept for compatibility) ----- */
+  --bg: var(--n-100);
+  --bg2: var(--n-0);
+  --bg3: var(--n-50);
+  --card: var(--n-0);
+  --line: var(--n-200);
+  --line2: var(--n-300);
+  --line3: var(--n-400);
+
+  /* ----- text ----- */
+  --text: var(--n-900);
+  --text-2: var(--n-700);
+  --muted: var(--n-500);        /* retuned: the old #8a97a6 was 2.98:1 on white */
+  --text-disabled: var(--n-400);
+
+  /* ----- accent & semantics -----
+     Two tiers on purpose. The SWATCH values are the workflow status palette from
+     js/store.js, and they cannot drift from it: three.js paints the 3D model with the
+     very same hex (viewer.js setHex/getHexString), and app.js builds tints by appending
+     alpha to it (`${st.color}22`), which only works on a hex literal. Retuning these
+     would have given the app two different reds — one on a chip, another on the element
+     it refers to.
+     The TEXT tier exists because those swatches are too light to read as small text:
+     --amber #c78b28 on white is 2.9:1. Anything that renders as words uses the -text
+     variant; anything that renders as a dot, chip, bar or 3D element uses the swatch. */
+  --accent: #1666aa;            /* = STATUSES.submitted */
+  --accent2: #12578f;           /* hover / pressed */
+  --accent-text: #0f5591;
+  --accent-light: #e8f1fa;
+  --accent-border: #bcd6ec;
+  --accent-ring: rgba(22, 102, 170, 0.32);
+  --green: #298646;             /* = STATUSES.installed */
+  --amber: #c78b28;             /* = STATUSES.transit */
+  --red: #d64545;               /* = STATUSES.rejected */
+  --purple: #7c5cd6;            /* = STATUSES.accepted */
+  --cyan: #0090b1;              /* = STATUSES.ready */
+  --green-text: #1d6b38;
+  --amber-text: #8a5a12;
+  --red-text: #b23434;
+  --purple-text: #5b3fb8;
+  --cyan-text: #0a6c85;
+  /* One ink per workflow status. The badge, the kanban column head and the takt chip all
+     print the status NAME in its own colour at 11px uppercase — on a 12%-alpha tint of
+     the same colour, which is the worst possible ground for it. Measured that way, eight
+     of the nine swatches were under 4.5:1. These are the same hues, darkened until the
+     words are legible; the dot, the fill and the 3D element keep the swatch.
+     Named after the status key so app.js can build the token: var(--st-${s}-ink). */
+  --st-draft-ink: #4a5563;
+  --st-submitted-ink: #12578f;
+  --st-rejected-ink: #a83232;
+  --st-accepted-ink: #5b3fb5;
+  --st-production-ink: #85510c;
+  --st-ready-ink: #00647c;
+  --st-transit-ink: #8a6110;
+  --st-delivered-ink: #2c7a45;
+  --st-installed-ink: #1f7a3d;
+  --green-soft: #e9f4ed;
+  --amber-soft: #fbf3e3;
+  --red-soft: #fceded;
+
+  /* ----- type scale ----- */
+  --fs-100: 10px;   /* micro: version, copyright */
+  --fs-200: 11px;   /* uppercase labels, chips, meta */
+  --fs-300: 12px;   /* secondary text */
+  --fs-400: 13px;   /* UI default: tables, buttons, inputs */
+  --fs-500: 14px;   /* body, nav */
+  --fs-600: 16px;   /* card/section titles, brand */
+  --fs-700: 20px;   /* view title */
+  --fs-800: 26px;   /* figures */
+  --fs-900: 32px;   /* login hero */
+  --lh-tight: 1.25;
+  --lh-ui: 1.4;
+  --lh-body: 1.55;
+  --ls-caps: 0.06em;  /* one value for every uppercase label */
+
+  /* ----- spacing: 4px grid ----- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+
+  /* ----- radii ----- */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-xl: 12px;
+  --r-pill: 999px;
+  --radius: var(--r-lg);
+
+  /* ----- elevation: borders do the work, shadow only for what floats ----- */
+  --e-1: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --e-2: 0 2px 6px rgba(16, 24, 40, 0.07);
+  --e-3: 0 16px 40px rgba(16, 24, 40, 0.16);
+  --shadow: var(--e-1);
+
+  /* ----- sidebar ----- */
+  --sidebar-top: #16212f;
+  --sidebar-bottom: #16212f;   /* flat: a gradient reads as decoration, not structure */
+  --sidebar-line: rgba(255, 255, 255, 0.09);
+  --sidebar-text: rgba(255, 255, 255, 0.72);
+  --sidebar-text-strong: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.07);
+
+  --heading: 'IBM Plex Sans', 'Inter', sans-serif;
+  --dur: 0.14s;
+  /* the scroll container's own padding — a sticky header has to cancel it, see `th` */
+  --view-pad: var(--sp-5);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: light; }
+html, body { height: 100%; }
+body {
+  font-family: 'Inter', "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-500);
+  line-height: var(--lh-ui);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, .kpi-value, .brand-name { font-family: var(--heading); line-height: var(--lh-tight); }
+/* Weight has one rule: 600 is emphasis, 700 is not used. The two were interchangeable
+   across the stylesheet, and the UA default bold leaked into every <b> and <strong> the
+   templates emit — 23 places the CSS never declared, all heavier than anything designed. */
+b, strong, h1, h2, h3, h4 { font-weight: 600; }
+/* digits that sit in a column must not shift width as they change */
+table, .kpi-value, .count-badge, .prop-row .v, .takt-table, .bar-value, .app-version {
+  font-variant-numeric: tabular-nums;
+}
+#app { display: flex; height: 100vh; }
+
+/* Every uppercase micro-label in the app — section titles, table headers, KPI captions,
+   column heads — was drifting between 10/11/12px and 0.4/0.5px tracking. One rule now. */
+.kpi-label, .card h3, th, .config-section-title, .kanban-col-head,
+#element-panel h3, #model-filters h3, .section-title {
+  font-size: var(--fs-200);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-caps);
+  color: var(--muted);
+}
+
+/* One visible focus treatment for everything, so keyboard use is never invisible.
+   :focus-visible (not :focus) keeps it off mouse clicks. */
+:where(button, [role="button"], a, input, select, textarea, label.btn, .config-item,
+       .order-card, .project-card, .nav-btn, .vtab, .user-chip):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+#sidebar :focus-visible { outline-color: #ffffff; }
+
+/* ---------- Sidebar ---------- */
+#sidebar {
+  width: 236px; min-width: 236px;
+  background: linear-gradient(var(--sidebar-top), var(--sidebar-bottom));
+  display: flex; flex-direction: column;
+}
+.brand { display: flex; gap: var(--sp-2); align-items: center; padding: var(--sp-4) var(--sp-3); border-bottom: 1px solid var(--sidebar-line); }
+.brand-logo {
+  width: 34px; height: 34px; border-radius: var(--r-md);
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: var(--fs-400); letter-spacing: 0.02em;
+  color: white; font-family: var(--heading);
+}
+.brand-name { font-weight: 600; font-size: var(--fs-600); color: var(--sidebar-text-strong); }
+.brand-sub { font-size: var(--fs-200); color: rgba(255, 255, 255, 0.45); line-height: var(--lh-ui); }
+#nav { display: flex; flex-direction: column; padding: var(--sp-3) var(--sp-2); gap: 1px; flex: 1; }
+/* flex + gap gives every item one icon slot and one label column, so the labels line
+   up instead of starting wherever the emoji happens to end */
+.nav-btn {
+  display: flex; align-items: center; gap: var(--sp-3);
+  text-align: left; padding: 9px var(--sp-3); border: none; background: transparent;
+  color: var(--sidebar-text); font-size: var(--fs-400); font-weight: 500;
+  border-radius: var(--r-md); cursor: pointer; font-family: inherit; line-height: var(--lh-ui);
+}
+/* The icons are emoji — full-colour cartoons in a tool whose palette is otherwise a
+   calm neutral. They cannot be replaced without touching both i18n dictionaries (66
+   occurrences each, which must stay key-for-key identical), so instead the inactive
+   ones are desaturated: the label leads, the icon supports, and the current view keeps
+   its colour as the one place emphasis belongs. The label text is achromatic, so the
+   filter changes nothing but the glyph. */
+.nav-btn:not(.active) { filter: grayscale(0.55); }
+.nav-btn:not(.active):hover { filter: grayscale(0.2); }
+.nav-btn:hover { background: var(--sidebar-hover); color: var(--sidebar-text-strong); }
+.nav-btn:active { background: rgba(255, 255, 255, 0.12); }
+.nav-btn.active { background: var(--accent); color: white; font-weight: 600; }
+.nav-btn.active:hover { background: var(--accent); }
+.sidebar-footer { padding: var(--sp-2); border-top: 1px solid var(--sidebar-line); display: flex; flex-direction: column; gap: var(--sp-1); }
+/* the footer icon was a full type step smaller than the nav icons directly above it,
+   which made the dock look like two different toolbars stacked */
+.sidebar-footer .ghost { color: var(--sidebar-text); display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-400); }
+.sidebar-footer .ghost:hover { background: var(--sidebar-hover); color: var(--sidebar-text-strong); }
+
+/* ---------- Main / topbar ---------- */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#topbar {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--line); background: var(--bg2);
+  min-height: 56px;
+}
+#topbar h1 { font-size: var(--fs-700); font-weight: 600; letter-spacing: -0.01em; }
+.topbar-right { display: flex; align-items: center; gap: var(--sp-2); }
+.role-label { color: var(--muted); font-size: var(--fs-400); }
+select, input[type="text"], input[type="date"], input[type="number"], input[type="email"], input[type="time"], input[type="search"], input[type="password"], textarea {
+  background: var(--bg2); color: var(--text); border: 1px solid var(--line2);
+  border-radius: var(--r-md); padding: 7px 10px; font-size: var(--fs-400); font-family: inherit;
+  line-height: var(--lh-ui);
+  transition: border-color var(--dur), box-shadow var(--dur);
+}
+select:hover, input:hover:not(:disabled), textarea:hover:not(:disabled) { border-color: var(--line3); }
+select:focus, input:focus, textarea:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring);
+}
+select:disabled, input:disabled, textarea:disabled {
+  background: var(--n-50); color: var(--text-disabled); border-color: var(--line);
+  cursor: not-allowed;
+}
+::placeholder { color: var(--n-400); }
+/* checkboxes were the OS blue, which is the one control that never matched the app */
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--accent);
+  width: 16px; height: 16px; margin: 0; flex-shrink: 0;
+}
+
+.view { display: none; flex: 1; overflow: auto; padding: var(--view-pad); }
+.view.active { display: block; }
+#view-model.active { display: flex; flex-direction: column; }
+
+/* ---------- Buttons ---------- */
+.btn, button.btn, label.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  background: var(--bg2); color: var(--text); border: 1px solid var(--line2);
+  padding: 7px var(--sp-3); border-radius: var(--r-md); cursor: pointer;
+  font-size: var(--fs-400); font-weight: 500; font-family: inherit; line-height: var(--lh-ui);
+  min-height: 32px; white-space: nowrap;
+}
+.btn:hover { border-color: var(--line3); background: var(--bg3); }
+.btn:active { background: var(--n-100); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
+.btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.btn.primary:active { background: #114a7a; }
+.btn.success { background: var(--green); border-color: var(--green); color: white; font-weight: 600; }
+.btn.success:hover { background: #1c6535; border-color: #1c6535; }
+.btn.small, .ghost.small { padding: 4px var(--sp-2); font-size: var(--fs-300); min-height: 26px; }
+/* a disabled control must LOOK unavailable — nothing in the app said so before */
+.btn:disabled, button.btn:disabled, .btn[disabled] {
+  background: var(--n-50); border-color: var(--line); color: var(--text-disabled);
+  cursor: not-allowed; box-shadow: none;
+}
+.btn:disabled:hover { background: var(--n-50); border-color: var(--line); }
+.ghost {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  background: transparent; border: none; color: var(--muted); cursor: pointer;
+  text-align: left; padding: 5px var(--sp-2); border-radius: var(--r-md);
+  font-size: var(--fs-400); font-family: inherit; line-height: var(--lh-ui);
+}
+.ghost:hover { background: var(--bg3); color: var(--text); }
+.ghost:active { background: var(--n-100); }
+.ghost:disabled, .ghost[disabled] { color: var(--text-disabled); cursor: not-allowed; background: transparent; }
+.ghost.danger:hover { color: var(--red-text); background: var(--red-soft); }
+.muted { color: var(--muted); }
+/* The sentence that explains what a view is for. It was written fifteen different ways
+   across app.js — three sizes and five bottom margins for one element — so every screen
+   opened at a slightly different rhythm. One class, one rhythm. */
+.view-intro {
+  color: var(--muted); font-size: var(--fs-400); line-height: var(--lh-body);
+  margin: 0 0 var(--sp-4); max-width: 92ch;
+}
+
+/* ---------- Cards & KPIs ---------- */
+/* 176px, not 190: at a ~700px content width the wider track dropped the grid from
+   three columns to two, which is a density regression — more scrolling for the same
+   information is the opposite of what a professional tool does. */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-5); }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: var(--sp-4); box-shadow: var(--e-1);
+}
+/* Eight large accent-blue figures competed with each other and with the real accents.
+   The figure is now text-coloured and one step smaller; colour returns only when a
+   value means something (the red overrides set inline by app.js still win). */
+.kpi-value {
+  font-size: var(--fs-800); font-weight: 600; margin-top: var(--sp-1); color: var(--text);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.kpi-sub { font-size: var(--fs-300); color: var(--muted); margin-top: var(--sp-1); line-height: var(--lh-ui); }
+.card h3 { margin-bottom: var(--sp-3); }
+/* the same eyebrow, inside a modal or a panel rather than a card */
+.section-title { margin-bottom: var(--sp-2); }
+.section-title-spaced { margin-top: var(--sp-4); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+@media (max-width: 1100px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* bar chart */
+.bar-row { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-2); }
+.bar-label { width: 130px; font-size: var(--fs-300); color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; background: var(--n-100); border-radius: var(--r-sm); height: 12px; position: relative; }
+.bar-fill { height: 100%; border-radius: var(--r-sm); background: var(--accent); min-width: 2px; }
+.bar-value { font-size: var(--fs-300); min-width: 44px; font-variant-numeric: tabular-nums; }
+
+/* Assembly table: on a phone the five phase columns would be pushed off-screen —
+   the crew reading this on site gets one compact ●●●○○ marker instead */
+.asm-narrow { display: none; }
+@media (max-width: 820px) {
+  .asm-wide { display: none; }
+  .asm-narrow { display: table-cell; }
+  span.asm-narrow { display: inline; }
+}
+
+/* dashboard trend chart — hover crosshair tooltip */
+.chart-trend-wrap { width: 100%; }
+.chart-tooltip {
+  position: absolute; pointer-events: none; background: var(--n-900); color: #fff;
+  font-size: var(--fs-200); padding: var(--sp-1) 7px; border-radius: var(--r-sm); white-space: nowrap;
+  font-variant-numeric: tabular-nums; z-index: 2;
+}
+.chart-tooltip.hidden { display: none; }
+
+/* ---------- Tables ---------- */
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); font-size: var(--fs-400); }
+/* A sticky offset resolves against the scrollport's PADDING box, so `top: 0` parked the
+   header 20px down — the height of the view's own padding — and rows scrolled through
+   the strip above it, visibly passing over the header. Cancelling the padding docks it
+   flush against the top edge, which is where a header belongs while you scroll. */
+th {
+  position: sticky; top: calc(-1 * var(--view-pad)); z-index: 2;
+  background: var(--card);
+  border-bottom: 1px solid var(--line2); white-space: nowrap;
+  padding-top: var(--sp-2); padding-bottom: var(--sp-2);
+}
+/* this one scrolls inside itself and has no padding to cancel */
+#qto-scroll th { top: 0; }
+tbody tr:last-child td { border-bottom: none; }
+/* the old hover was 1.02:1 against white — invisible on a laptop outdoors, which is
+   where this app is read */
+tr:hover td { background: var(--n-100); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- Model view (tabbed: 3D model | quantities takeoff) ---------- */
+.view-tabs { display: flex; gap: var(--sp-1); border-bottom: 1px solid var(--line); margin-bottom: var(--sp-4); }
+.vtab {
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  padding: var(--sp-2) var(--sp-3); margin-bottom: -1px; cursor: pointer;
+  font-family: inherit; font-size: var(--fs-400); font-weight: 500; color: var(--muted);
+}
+.vtab:hover { color: var(--text); }
+.vtab.active { color: var(--accent-text); border-bottom-color: var(--accent); font-weight: 600; }
+#mtab-model { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+#mtab-model.hidden, #mtab-qto.hidden { display: none; }
+#mtab-qto { flex: 1; min-height: 0; overflow: auto; }
+.model-toolbar {
+  display: flex; gap: var(--sp-2); align-items: center; margin-bottom: var(--sp-3);
+  padding-bottom: var(--sp-3); border-bottom: 1px solid var(--line);
+}
+.model-layout { flex: 1; display: flex; gap: var(--sp-3); min-height: 0; }
+#viewer-container {
+  flex: 1; position: relative; background: #10161f;
+  border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+  min-height: 300px;
+}
+#viewer-canvas { width: 100%; height: 100%; display: block; }
+.viewer-empty {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: rgba(255, 255, 255, 0.55); pointer-events: none; font-size: var(--fs-400);
+}
+/* global busy indicator — fixed top bar + centered pill, shown in ANY view while
+   an IFC is parsing or uploading (the viewer overlay only covers the 3D pane) */
+#busy { position: fixed; inset: 0 0 auto 0; z-index: 200; pointer-events: none; }
+#busy.hidden { display: none; }
+.busy-bar { height: 3px; width: 100%; background: transparent; overflow: hidden; }
+.busy-fill {
+  height: 100%; width: 30%; background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  transition: width 0.2s ease; will-change: transform, width;
+}
+/* indeterminate mode: no known %, slide a comet across the compositor */
+#busy.indet .busy-fill {
+  width: 32%; transition: none;
+  animation: busy-slide 1.1s ease-in-out infinite;
+}
+@keyframes busy-slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(420%); } }
+.busy-pill {
+  position: absolute; top: var(--sp-3); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: var(--sp-2);
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-pill);
+  padding: 6px var(--sp-4) 6px var(--sp-3); font-size: var(--fs-400); color: var(--text);
+  box-shadow: var(--e-3); max-width: 88vw;
+}
+.busy-spin {
+  width: 13px; height: 13px; flex-shrink: 0; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent); animation: busy-spin 0.7s linear infinite;
+}
+@keyframes busy-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  #busy.indet .busy-fill { animation-duration: 2.4s; }
+  .busy-spin { animation-duration: 1.6s; }
+  * { transition-duration: 0.01ms !important; }
+}
+
+/* loading overlay — the fill is transform-animated so it keeps moving on the
+   GPU compositor even while the main thread is blocked parsing a large IFC */
+.viewer-loading {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-3);
+  background: rgba(10, 14, 24, 0.72); backdrop-filter: blur(2px);
+}
+.viewer-loading.hidden { display: none; }
+.vl-bar {
+  width: min(280px, 62%); height: 6px; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.14); overflow: hidden; position: relative;
+}
+.vl-fill {
+  position: absolute; top: 0; left: 0; height: 100%; width: 38%;
+  border-radius: var(--r-pill); background: var(--accent); will-change: transform;
+  animation: vl-slide 1.1s ease-in-out infinite;
+}
+@keyframes vl-slide {
+  0% { transform: translateX(-130%); }
+  100% { transform: translateX(330%); }
+}
+.vl-label { font-size: var(--fs-400); letter-spacing: 0.01em; color: rgba(255, 255, 255, 0.82); }
+@media (prefers-reduced-motion: reduce) { .vl-fill { animation-duration: 2.4s; } }
+
+/* the properties palette — the most BIM-like surface in the app */
+#element-panel {
+  width: 280px; min-width: 280px; background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: var(--sp-4);
+  overflow: auto; box-shadow: var(--e-1);
+}
+#element-panel h3 { margin-bottom: var(--sp-3); }
+.prop-row {
+  display: flex; justify-content: space-between; gap: var(--sp-3);
+  padding: 5px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-300);
+  line-height: var(--lh-ui);
+}
+.prop-row:last-child { border-bottom: none; }
+.prop-row .k { color: var(--muted); flex-shrink: 0; }
+.prop-row .v { text-align: right; word-break: break-all; font-variant-numeric: tabular-nums; }
+
+/* ---------- takt planning ---------- */
+.takt-config { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-3); font-size: var(--fs-300); }
+.takt-config label { display: flex; align-items: center; gap: var(--sp-2); color: var(--muted); }
+.takt-table { border-collapse: collapse; width: 100%; font-size: var(--fs-300); }
+.takt-table th, .takt-table td { border: 1px solid var(--line); padding: var(--sp-2); text-align: left; vertical-align: top; min-width: 74px; }
+.takt-table th { position: static; }
+.takt-table td.takt-target { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.takt-table th.takt-today, .takt-table td.takt-today { background: color-mix(in srgb, var(--amber) 12%, transparent); }
+.takt-table tfoot td { font-weight: 600; background: var(--bg3); }
+.takt-chip {
+  display: inline-block; border-radius: var(--r-sm); padding: 1px var(--sp-2); margin: 1px 0;
+  font-size: var(--fs-200); font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.takt-chip.takt-overdue { box-shadow: 0 0 0 1px var(--red); }
+/* this was a bare ✕ glyph: a ~7px hit area for a destructive action, on a screen people
+   use with a thumb. The padding is the target; the glyph stays small. */
+.takt-delzone {
+  color: var(--n-400); text-decoration: none; font-size: var(--fs-200);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: var(--r-sm); margin-left: var(--sp-1);
+  vertical-align: middle;
+}
+.takt-delzone:hover { color: var(--red-text); background: var(--red-soft); }
+
+/* ---------- inspection gates ---------- */
+.insp-card {
+  background: var(--bg3); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3); display: flex; flex-direction: column; gap: 3px;
+}
+.insp-card.fail { border-color: var(--red); background: var(--red-soft); }
+.insp-photo { height: 46px; width: auto; border-radius: var(--r-md); cursor: zoom-in; align-self: flex-start; }
+.insp-photo.expanded { height: auto; max-width: 100%; cursor: zoom-out; }
+.insp-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  background: var(--green-soft);
+  border: 1px solid color-mix(in srgb, var(--green) 40%, transparent); border-radius: var(--r-lg);
+  padding: var(--sp-3); margin-bottom: var(--sp-4); font-size: var(--fs-400);
+}
+
+/* ---------- copyright notice ---------- */
+.copyright {
+  font-size: var(--fs-100); line-height: var(--lh-body); color: var(--muted);
+  padding: var(--sp-3) var(--sp-1) 0; opacity: 0.8;
+}
+.login-card .copyright { padding: var(--sp-3) 0 0; text-align: center; }
+
+/* running version — deliberately quiet, but selectable so it can be quoted in a
+   bug report; hidden on the icon-only sidebar like the copyright next to it */
+.app-version {
+  font-size: var(--fs-100); color: var(--muted); opacity: 0.7;
+  padding: var(--sp-2) var(--sp-1) 0; font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Configuration modal ---------- */
+.config-section-title { margin: var(--sp-5) 0 var(--sp-2); }
+.config-item {
+  display: flex; align-items: center; gap: var(--sp-3); width: 100%;
+  background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: var(--sp-3); margin-bottom: var(--sp-1); cursor: pointer;
+  font-family: inherit; color: var(--text); text-align: left;
+}
+.config-item:hover { border-color: var(--line3); background: var(--bg3); }
+.config-item.danger .config-item-label { color: var(--red-text); }
+/* line-height:1 on a glyph whose em box is taller than 1em pushed the icon off the
+   centre of the label/hint pair it sits beside; letting it inherit centres it */
+.config-item-icon { font-size: var(--fs-500); width: 20px; text-align: center; flex-shrink: 0; }
+.config-item-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.config-item-label { font-size: var(--fs-400); font-weight: 500; }
+.config-item-hint { font-size: var(--fs-200); color: var(--muted); }
+.config-item-chev { color: var(--n-400); font-size: var(--fs-500); }
+
+/* ---------- QTO ---------- */
+.qto-toolbar { display: flex; gap: var(--sp-2); align-items: center; margin-bottom: var(--sp-4); flex-wrap: wrap; }
+.qto-toolbar input[type="text"] { width: 240px; }
+/* virtualized table: fixed row height keeps the scroll-window math exact;
+   scroll anchoring must be off — rewriting the tbody would make the browser
+   "helpfully" chase the replaced rows and fight the windowing.
+   DO NOT change the 37px: js/app.js measures against it. */
+#qto-scroll { overflow-anchor: none; }
+/* Without a fixed layout the browser re-measures every column against whatever slice of
+   rows is currently mounted, so the columns twitch sideways on each scroll step — the
+   windowing swaps the content out from under the algorithm. Fixed layout reads the
+   widths once, from the header row. The name column is left to absorb the remainder. */
+#qto-content table { table-layout: fixed; }
+/* widths measured from the rendered headers in Portuguese, which is the longer of the
+   two dictionaries — "Comprimento (m)" needs 149px where English "Length (m)" needs far
+   less, so sizing for PT covers both */
+#qto-content th:nth-child(1) { width: 36px; }
+#qto-content th:nth-child(2) { width: 88px; }
+#qto-content th:nth-child(4) { width: 100px; }
+#qto-content th:nth-child(5) { width: 112px; }
+#qto-content th:nth-child(6) { width: 108px; }
+#qto-content th:nth-child(7) { width: 152px; }
+#qto-content th:nth-child(8) { width: 132px; }
+#qto-content tbody tr[data-key] { height: 37px; }
+/* a selected typology is one that will end up in the production request — worth more
+   than a tick you have to hunt for */
+#qto-content tbody tr.is-selected td { background: var(--accent-light); }
+#qto-content tbody tr.is-selected:hover td { background: #ddebf8; }
+#qto-content tbody tr.is-selected td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+#qto-content tbody td { padding-top: 0; padding-bottom: 0; white-space: nowrap; vertical-align: middle; }
+/* the row is 37px and immovable, so the control inside it has to be the thing that
+   yields: 26px leaves real clearance where there used to be 1.4px */
+#qto-content tbody td .qto-qty { height: 26px; padding: 2px var(--sp-2); min-height: 0; }
+#qto-content tbody td .ghost.small { min-height: 0; }
+#qto-content .qto-name { max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+#qto-content tr.qto-spacer td { padding: 0; border: 0; }
+#qto-content tr.qto-spacer:hover td { background: transparent; }
+.selected-info { margin-left: auto; color: var(--muted); font-size: var(--fs-400); }
+.type-chip {
+  display: inline-block; padding: 2px var(--sp-2); border-radius: var(--r-sm);
+  font-size: var(--fs-200); font-weight: 500; line-height: 1.5;
+  background: var(--accent-light); border: 1px solid var(--accent-border); color: var(--accent-text);
+}
+
+/* activity log — the coloured dot separates the three trails at a glance */
+.act-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: var(--sp-2); vertical-align: middle;
+}
+@media (max-width: 700px) {
+  .activity-table thead { display: none; }
+  .activity-table, .activity-table tbody, .activity-table tr, .activity-table td { display: block; width: auto; }
+  .activity-table tr { padding: var(--sp-3); border-bottom: 1px solid var(--line); }
+  .activity-table td { border: none; padding: 2px 0; }
+  .activity-table td[data-label]::before {
+    content: attr(data-label) ': ';
+    color: var(--muted); font-size: var(--fs-200); text-transform: uppercase;
+  }
+}
+
+/* tel:/mailto: contacts — a generous tap target, since these are used one-handed on site */
+.contact-link {
+  display: inline-block; padding: 2px 0; color: var(--accent-text);
+  text-decoration: none; white-space: nowrap;
+}
+.contact-link:hover { text-decoration: underline; }
+
+/* Suppliers table: five columns do not fit a phone, and the card clipped the phone
+   number — the one thing you actually need on site. Below 700px each row becomes a
+   stacked block with its header as a label, so nothing is cut off. */
+@media (max-width: 700px) {
+  .parties-table thead { display: none; }
+  .parties-table, .parties-table tbody, .parties-table tr, .parties-table td { display: block; width: auto; }
+  .parties-table tr { padding: var(--sp-3); border-bottom: 1px solid var(--line); }
+  .parties-table td { border: none; padding: 2px 0; }
+  .parties-table td[data-label]::before {
+    content: attr(data-label) ': ';
+    color: var(--muted); font-size: var(--fs-200); text-transform: uppercase;
+  }
+  .parties-table td:first-child { font-weight: 600; }
+  .parties-table td:first-child::before { content: none; }
+  .parties-table .contact-link { padding: var(--sp-2) 0; } /* comfortable tap target */
+}
+
+/* ---------- Kanban (wraps — no horizontal scrolling) ---------- */
+.kanban { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--sp-3); align-items: start; }
+.kanban-col { min-width: 0; background: var(--bg3); border: 1px solid var(--line); border-radius: var(--radius); }
+.kanban-col-head {
+  padding: var(--sp-3); display: flex; justify-content: space-between; align-items: center;
+  gap: var(--sp-2); border-bottom: 1px solid var(--line);
+}
+.kanban-cards { padding: var(--sp-2); display: flex; flex-direction: column; gap: var(--sp-2); min-height: 32px; }
+.order-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: var(--sp-3); cursor: pointer; box-shadow: var(--e-1);
+}
+.order-card:hover { border-color: var(--line3); }
+.order-card .code { font-weight: 600; font-size: var(--fs-400); display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.order-card .meta { color: var(--muted); font-size: var(--fs-200); margin-top: 3px; line-height: var(--lh-ui); }
+.count-badge {
+  background: var(--n-100); border-radius: var(--r-pill); padding: 1px var(--sp-2);
+  font-size: var(--fs-200); color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: var(--sp-2); }
+
+/* ---------- Timeline ---------- */
+.timeline { list-style: none; margin-top: var(--sp-2); }
+.timeline li { padding: var(--sp-2) 0 var(--sp-2) var(--sp-5); border-left: 1px solid var(--line2); position: relative; font-size: var(--fs-300); }
+.timeline li::before {
+  content: ""; position: absolute; left: -4px; top: 13px;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+}
+.timeline .ts { color: var(--muted); font-size: var(--fs-200); }
+
+/* ---------- Modal ---------- */
+#modal-backdrop {
+  position: fixed; inset: 0; background: rgba(16, 24, 40, 0.4);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+#modal-backdrop.hidden { display: none; }
+#modal {
+  background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r-xl);
+  width: min(720px, 92vw); max-height: 88vh; overflow: auto; padding: var(--sp-6);
+  box-shadow: var(--e-3);
+}
+#modal h2 { font-size: var(--fs-600); font-weight: 600; margin-bottom: var(--sp-4); }
+.form-row { margin-bottom: var(--sp-3); }
+.form-row label { display: block; font-size: var(--fs-300); color: var(--muted); margin-bottom: var(--sp-1); }
+.form-row input:not([type="checkbox"]), .form-row select, .form-row textarea { width: 100%; }
+/* two short fields on one line — a component form that asks for size, standard and
+   brand one under the other reads as a much longer form than it is. Collapses on
+   narrow screens, where side-by-side inputs are worse than a longer scroll. */
+/* Printing the goods document. The modal is the document, so everything else on the
+   page goes away — the sidebar, the toolbar, the modal's own buttons. Without this the
+   driver's copy comes out wrapped in the application. */
+@media print {
+  body > *:not(#modal-backdrop) { display: none !important; }
+  #modal-backdrop { position: static !important; background: none !important; display: block !important; }
+  #modal {
+    box-shadow: none !important; border: none !important; max-height: none !important;
+    width: 100% !important; overflow: visible !important; padding: 0 !important;
+  }
+  .modal-actions { display: none !important; }
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+}
+
+/* A view is a chip carrying its own count, not an option inside a dropdown. The count
+   is the point: it answers the question without being clicked, which a select cannot.
+   `.empty` is the one that stays visible at zero — "nothing is below minimum" is an
+   answer worth showing, so it is drawn quiet rather than not drawn. */
+.view-chip {
+  border: 1px solid var(--line); background: var(--bg2); color: var(--fg);
+  border-radius: var(--r-pill, 999px); white-space: nowrap;
+}
+.view-chip:hover { border-color: var(--accent); }
+.view-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.view-chip.empty { color: var(--muted); border-style: dashed; }
+.view-chip.empty.active { color: #fff; border-style: solid; }
+
+/* the ⓘ next to a field whose choices need defining. Deliberately a native `title`
+   rather than a custom tooltip: it works on every browser, needs no positioning
+   logic, and is read out by screen readers. */
+.info-dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 1px solid var(--muted); color: var(--muted);
+  font-size: 10px; font-weight: 700; font-style: italic;
+  line-height: 1; cursor: help; vertical-align: middle;
+}
+.info-dot:hover { border-color: var(--accent); color: var(--accent); }
+
+/* an archived reference is still readable — it is retired, not deleted, and its
+   quantities still have to be legible when you go looking for it */
+.row-archived > td { opacity: .6; }
+.form-row-split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.form-row-split > div { min-width: 0; }
+@media (max-width: 560px) { .form-row-split { grid-template-columns: 1fr; } }
+.modal-actions {
+  display: flex; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-5);
+  padding-top: var(--sp-4); border-top: 1px solid var(--line);
+}
+.badge {
+  display: inline-block; padding: 2px var(--sp-2); border-radius: var(--r-sm);
+  font-size: var(--fs-200); font-weight: 600;
+  text-transform: uppercase; letter-spacing: var(--ls-caps);
+}
+
+/* ---------- Toast ---------- */
+#toast {
+  position: fixed; bottom: var(--sp-6); left: 50%; transform: translateX(-50%);
+  /* the border was declared in the background's own colour, so the dark chip had no
+     edge exactly where it needs one — floating over dark charts and the 3D viewer */
+  background: var(--n-900); border: 1px solid var(--n-700); color: #fff;
+  padding: var(--sp-3) var(--sp-5); border-radius: var(--r-lg); z-index: 200; font-size: var(--fs-400);
+  box-shadow: var(--e-3);
+}
+#toast.hidden { display: none; }
+
+.empty-state { text-align: center; color: var(--muted); padding: var(--sp-8) var(--sp-5); font-size: var(--fs-400); }
+/* A colour emoji at half opacity is not neutral, it is muddy — the colours are still
+   there, just dirtier. Desaturating it fully and keeping it small reads as a mark
+   rather than a picture. */
+.empty-state .big {
+  font-size: var(--fs-700); margin-bottom: var(--sp-2);
+  filter: grayscale(1); opacity: 0.45;
+}
+
+/* ---------- Project cards (multi-project dashboard) ---------- */
+.project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-3); }
+.project-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: var(--sp-4); cursor: pointer; display: flex; flex-direction: column; gap: var(--sp-3);
+  box-shadow: var(--e-1);
+}
+.project-card:hover { border-color: var(--line3); }
+.project-card.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.project-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); }
+.project-name { font-weight: 600; font-size: var(--fs-500); font-family: var(--heading); }
+.project-stats { display: flex; gap: var(--sp-3); font-size: var(--fs-300); color: var(--muted); flex-wrap: wrap; }
+.project-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
+.card-head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--sp-3); gap: var(--sp-3); flex-wrap: wrap; }
+.card-head-row h3 { margin-bottom: 0; }
+.project-card.no-model { border-style: dashed; }
+.badge-active { background: var(--accent-light); color: var(--accent-text); border: 1px solid var(--accent-border); }
+#project-select { max-width: 200px; }
+
+/* ---------- Generic ---------- */
+.hidden { display: none !important; }
+.btn, .nav-btn, .order-card, .project-card, .ghost, .config-item, .vtab {
+  transition: background var(--dur), border-color var(--dur), color var(--dur),
+              box-shadow var(--dur), filter var(--dur);
+}
+.card { transition: border-color var(--dur); }
+.order-card:hover, .project-card:hover { box-shadow: var(--e-2); }
+
+/* ---------- User chip & profile ---------- */
+.user-chip {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  background: var(--bg2); border: 1px solid var(--line2); border-radius: var(--r-pill);
+  padding: 3px var(--sp-3) 3px 3px; cursor: pointer; color: var(--text); font: inherit;
+  transition: border-color var(--dur), background var(--dur);
+}
+.user-chip:hover { border-color: var(--line3); background: var(--bg3); }
+.avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: white; font-weight: 600; font-size: var(--fs-200);
+}
+.user-chip-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+#user-name { font-size: var(--fs-400); font-weight: 500; }
+#user-role { font-size: var(--fs-100); }
+
+/* ---------- Login page ---------- */
+.login-body {
+  min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+}
+.login-wrap {
+  display: flex; gap: var(--sp-8); align-items: center; padding: var(--sp-7);
+  max-width: 900px; width: 100%;
+}
+.login-hero { flex: 1.2; }
+.login-logo { width: 56px; height: 56px; border-radius: var(--r-xl); font-size: var(--fs-700); margin-bottom: var(--sp-5); }
+.login-hero h1 { font-size: var(--fs-900); font-weight: 600; margin-bottom: var(--sp-3); letter-spacing: -0.02em; }
+.login-tagline { color: var(--muted); font-size: var(--fs-600); line-height: var(--lh-body); margin-bottom: var(--sp-6); }
+.login-points { list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); color: var(--muted); font-size: var(--fs-400); }
+.login-card {
+  flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-xl);
+  padding: var(--sp-7); display: flex; flex-direction: column; gap: var(--sp-4);
+  box-shadow: var(--e-2);
+}
+.login-card h2 { font-size: var(--fs-700); font-weight: 600; }
+.login-label { display: flex; flex-direction: column; gap: var(--sp-2); font-size: var(--fs-300); color: var(--muted); }
+.login-label input {
+  width: 100%; padding: 10px var(--sp-3); font-size: var(--fs-500);
+  background: var(--bg2); color: var(--text);
+  border: 1px solid var(--line2); border-radius: var(--r-md); font-family: inherit;
+}
+.login-label input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+.login-submit { justify-content: center; padding: 11px; font-size: var(--fs-500); min-height: 42px; }
+.login-error {
+  background: var(--red-soft); border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
+  color: var(--red-text);
+  border-radius: var(--r-md); padding: var(--sp-2) var(--sp-3); font-size: var(--fs-400);
+}
+/* the boot window is not a failure — waking the server must not look like one */
+.login-error.is-waiting {
+  background: var(--n-50); border-color: var(--line2); color: var(--muted);
+}
+.login-hint { font-size: var(--fs-300); text-align: center; }
+.lang-toggle { display: flex; gap: 2px; background: var(--n-100); border-radius: var(--r-md); padding: 2px; }
+.lang-btn {
+  background: transparent; border: none; color: var(--muted); font-size: var(--fs-200); font-weight: 600;
+  padding: var(--sp-1) var(--sp-2); border-radius: var(--r-sm); cursor: pointer; font-family: inherit;
+}
+.lang-btn.active { background: var(--accent); color: white; }
+@media (max-width: 768px) {
+  .login-wrap { flex-direction: column; gap: var(--sp-6); padding: var(--sp-5); }
+  .login-hero { text-align: center; }
+  .login-logo { display: none; } /* phones: name + tagline only, form fits without scrolling */
+  .login-points { display: none; }
+  .login-card { width: 100%; padding: var(--sp-5); }
+  .user-chip-text { display: none; } /* avatar only on phones */
+  .user-chip { padding: 3px; }
+}
+
+/* ---------- Configuration modal ---------- */
+.config-hint { font-size: var(--fs-300); margin-top: var(--sp-1); }
+
+/* the standing "you are offline" notice — quiet enough to work with, present enough that
+   nobody reads a stale number as a current one */
+.offline-bar {
+  display: flex; align-items: center; gap: var(--sp-2);
+  background: var(--amber-soft); border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent);
+  color: var(--amber-text); border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-4);
+  font-size: var(--fs-400); line-height: var(--lh-ui);
+}
+.offline-bar::before { content: "○"; font-size: var(--fs-300); }
+
+/* one minimum per factory, under the warehouse one — a label column that can grow and a
+   narrow number that does not, so the rows line up however long a factory's name is */
+.factory-min-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-1) 0;
+}
+.factory-min-row + .factory-min-row { border-top: 1px solid var(--line); }
+.factory-min-name {
+  flex: 1; min-width: 0; font-size: var(--fs-400); color: var(--text-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* `.form-row input:not([type="checkbox"])` sets width:100% and outranks a two-class
+   selector, so this one has to carry enough weight to win — otherwise the number field
+   stretches to the full width of the modal and the layout reads as a stack of inputs
+   with a stray label above each. */
+.form-row .factory-min-row input.factory-min {
+  width: 110px; flex-shrink: 0; text-align: right;
+}
+
+/* ---------- Status colors legend ---------- */
+.status-legend { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+.status-legend.hidden { display: none; }
+/* some legend chips carry their dot as a child element and some as a leading glyph, so
+   without a gap the row spaced itself unevenly depending on which kind it was */
+.legend-chip { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-300); color: var(--muted); }
+.legend-chip .status-dot { margin-right: 0; }
+/* the live count while 4D plays — tabular figures so the chips stop twitching
+   sideways every time a number goes from 9 to 10 */
+.legend-chip b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ---------- 4D playback ---------- */
+.fourd-bar { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-2); }
+.fourd-bar.hidden { display: none; }
+.fourd-range { flex: 1; min-width: 160px; accent-color: var(--accent); padding: 0; }
+.fourd-date { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 132px; }
+.fourd-speed { width: auto; min-width: 72px; }
+#fourd-play { min-width: 46px; }
+/* the strip keeps its line whether or not that step has events: without the height
+   the 3D view jumped a line up and down on every tick of the playback */
+.fourd-changes {
+  font-size: var(--fs-200); color: var(--muted); margin-bottom: var(--sp-3);
+  min-height: 1.3em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.fourd-changes.hidden { display: none; }
+
+/* ---------- Model visibility filters ---------- */
+#model-filters h3 { margin-bottom: var(--sp-2); }
+#model-filters a { color: var(--accent-text); text-decoration: none; font-size: var(--fs-200); }
+#model-filters a:hover { text-decoration: underline; }
+.filter-group { display: flex; flex-direction: column; gap: 1px; }
+label.filter-item { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-300); padding: 3px 0; cursor: pointer; margin-bottom: 0; }
+.filter-item:hover { color: var(--accent-text); }
+.filter-item .muted { font-size: var(--fs-200); }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 768px) {
+  :root { --view-pad: var(--sp-3); }
+  #app { flex-direction: column; height: 100dvh; }
+  /* iOS Safari zooms the whole page whenever a field under 16px takes focus, and every
+     field in the app was 13px. Bumping the type here is also the right touch size. */
+  select, input[type="text"], input[type="date"], input[type="number"], input[type="email"],
+  input[type="time"], input[type="search"], input[type="password"], textarea {
+    font-size: 16px; padding: 9px var(--sp-3);
+  }
+  input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; }
+  label.filter-item { padding: var(--sp-2) 0; } /* the row is the target, not the box */
+  /* single compact row: nav icons left, data buttons right */
+  #sidebar {
+    width: 100%; min-width: 0; flex-direction: row; align-items: center;
+  }
+  .brand { display: none; }
+  .nav-label { display: none; } /* icons only — labels stay in the title tooltip */
+  #sidebar .copyright, #sidebar .app-version { display: none; } /* no room next to icon-only nav */
+  #nav {
+    flex-direction: row; flex: 1; overflow-x: auto; padding: var(--sp-1) var(--sp-2); gap: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-btn { white-space: nowrap; padding: var(--sp-2) 10px; font-size: 18px; line-height: 1; justify-content: center; min-height: 40px; }
+  .sidebar-footer {
+    flex-direction: row; border-top: none; border-left: 1px solid var(--sidebar-line);
+    padding: var(--sp-1) var(--sp-2); gap: 2px;
+  }
+  .sidebar-footer .ghost { white-space: nowrap; font-size: 15px; padding: var(--sp-2); line-height: 1; min-height: 40px; }
+  #topbar { flex-wrap: wrap; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); }
+  #topbar h1 { font-size: var(--fs-600); width: 100%; }
+  .topbar-right { flex-wrap: wrap; gap: var(--sp-2); width: 100%; }
+  #project-select, #role-select { flex: 1; min-width: 0; max-width: none; }
+  .role-label { display: none; }
+  .view { padding: var(--sp-3); }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: var(--sp-2); }
+  .kpi-value { font-size: var(--fs-700); }
+  .model-layout { flex-direction: column; }
+  #viewer-container { min-height: 45dvh; }
+  #element-panel { width: 100%; min-width: 0; max-height: 40dvh; }
+  .model-toolbar { flex-wrap: wrap; }
+  .qto-toolbar input[type="text"] { width: 100%; }
+  .selected-info { margin-left: 0; width: 100%; }
+  .project-grid { grid-template-columns: 1fr; }
+  #modal { width: 96vw; padding: var(--sp-4); max-height: 92dvh; }
+  th, td { padding: 7px var(--sp-2); font-size: var(--fs-300); }
+  /* on-site one-handed use: keep the real tap targets at 40px+ */
+  .btn, label.btn { min-height: 40px; padding: var(--sp-2) var(--sp-3); }
+  .btn.small, .ghost.small { min-height: 32px; }
+  /* narrow screens: drop secondary QTO columns so the table never scrolls sideways */
+  #qto-content th:nth-child(6), #qto-content td:nth-child(6),
+  #qto-content th:nth-child(7), #qto-content td:nth-child(7) { display: none; }
+  #users-content th:nth-child(4), #users-content td:nth-child(4) { display: none; }
+}
+
+/* ---------- Scan & planning ---------- */
+body { overflow-x: hidden; }
+.scan-phase {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--sp-2) 0; border-bottom: 1px solid var(--line); font-size: var(--fs-400);
+}
+.look-row {
+  border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-2); font-size: var(--fs-400);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+}
+.look-chips { display: flex; gap: var(--sp-2); flex-wrap: wrap; }

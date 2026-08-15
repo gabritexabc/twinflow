@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — TwinFlow</title>
+<!-- the two variable fonts are only discovered once the stylesheet has been parsed;
+     asking for them here overlaps the two fetches. They are already woff2 and cached
+     immutably, so this is purely about when they start, not how big they are. -->
+<link rel="preload" href="vendor/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="vendor/fonts/plex-var.woff2" as="font" type="font/woff2" crossorigin>
+<!-- the sign-in page is where somebody lands when they install from a link, so it carries
+     the manifest too — otherwise "add to home screen" here would produce a plain shortcut -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16212f">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TwinFlow">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-body">
+  <div class="login-wrap">
+    <div class="login-hero">
+      <div class="brand-logo login-logo">TF</div>
+      <h1>TwinFlow</h1>
+      <p class="login-tagline" data-i18n="heroTagline">The digital thread for industrialized construction —<br>
+      from the BIM model to the component fixed on site.</p>
+      <ul class="login-points">
+        <li data-i18n="point1">📐 Automatic quantity takeoff from IFC</li>
+        <li data-i18n="point2">🏭 Production requests to the off-site factory</li>
+        <li data-i18n="point3">🚚 Just-in-time logistics &amp; site assembly tracking</li>
+        <li data-i18n="point4">📊 Live KPIs — productivity, PPC, non-conformities</li>
+      </ul>
+    </div>
+    <form class="login-card" id="login-form" autocomplete="on">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 data-i18n="title">Sign in</h2>
+        <div class="lang-toggle">
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+          <button type="button" class="lang-btn" data-lang="pt">PT</button>
+        </div>
+      </div>
+      <label class="login-label" data-i18n="username">Username
+        <input id="lg-user" autocomplete="username" required autofocus>
+      </label>
+      <label class="login-label" data-i18n="password">Password
+        <input id="lg-pass" type="password" autocomplete="current-password" required>
+      </label>
+      <div id="lg-error" class="login-error" hidden></div>
+      <button class="btn primary login-submit" type="submit" data-i18n="submit">Sign in →</button>
+      <p class="muted login-hint" data-i18n="hint">Ask your administrator for an account.</p>
+      <p class="copyright" data-i18n="rights">© 2026 José Gabriel Andrade Teixeira — All rights reserved.</p>
+    </form>
+  </div>
+<script>
+// Standalone mini-dictionary for the login page (no account/session exists yet to
+// read a saved language from) — remembers the last choice on this device/browser.
+const LOGIN_DICT = {
+  en: {
+    heroTagline: 'The digital thread for industrialized construction —<br>from the BIM model to the component fixed on site.',
+    point1: '📐 Automatic quantity takeoff from IFC',
+    point2: '🏭 Production requests to the off-site factory',
+    point3: '🚚 Just-in-time logistics &amp; site assembly tracking',
+    point4: '📊 Live KPIs — productivity, PPC, non-conformities',
+    title: 'Sign in',
+    username: 'Username',
+    password: 'Password',
+    submit: 'Sign in →',
+    hint: 'Ask your administrator for an account.',
+    rights: '© 2026 José Gabriel Andrade Teixeira — All rights reserved.',
+    errorGeneric: 'Sign-in failed',
+    errorUnreachable: 'Server unreachable — try again',
+    starting: 'Starting the server, one moment…',
+    startingSlow: 'The server is taking longer than usual — try again in a moment',
+  },
+  pt: {
+    heroTagline: 'O fio digital da construção industrializada —<br>do modelo BIM ao componente fixado em obra.',
+    point1: '📐 Mapa de quantidades automático a partir de IFC',
+    point2: '🏭 Pedidos de produção à fábrica off-site',
+    point3: '🚚 Logística just-in-time e acompanhamento de montagem',
+    point4: '📊 Indicadores em tempo real — produtividade, PPC, não conformidades',
+    title: 'Iniciar sessão',
+    username: 'Utilizador',
+    password: 'Palavra-passe',
+    submit: 'Entrar →',
+    hint: 'Pede uma conta ao teu administrador.',
+    rights: '© 2026 José Gabriel Andrade Teixeira — Todos os direitos reservados.',
+    errorGeneric: 'Falha ao iniciar sessão',
+    errorUnreachable: 'Servidor inacessível — tenta novamente',
+    starting: 'A arrancar o servidor, um momento…',
+    startingSlow: 'O servidor está a demorar mais do que o costume — tenta daqui a pouco',
+  },
+};
+
+function applyLoginLang(lang) {
+  const dict = LOGIN_DICT[lang] || LOGIN_DICT.en;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    if (key === 'username' || key === 'password') {
+      // these labels wrap an <input> — only replace the label's own text node
+      el.childNodes[0].textContent = dict[key] + ' ';
+    } else if (dict[key] !== undefined) {
+      el.innerHTML = dict[key];
+    }
+  });
+  document.querySelectorAll('.lang-btn').forEach((b) => b.classList.toggle('active', b.dataset.lang === lang));
+  document.documentElement.lang = lang;
+  localStorage.setItem('twinflow.loginLang', lang);
+}
+
+const savedLang = localStorage.getItem('twinflow.loginLang')
+  || (navigator.language?.startsWith('pt') ? 'pt' : 'en');
+applyLoginLang(savedLang);
+
+document.querySelectorAll('.lang-btn').forEach((b) => {
+  b.addEventListener('click', () => applyLoginLang(b.dataset.lang));
+});
+
+// The server starts LISTENING before the database finishes loading — deliberately,
+// because Passenger kills an app that is slow to bind. Until it is ready every API
+// call answers 503 "starting". That window is short, but it is exactly when somebody
+// signs in: Passenger spins the app down while idle, so the FIRST person back after a
+// quiet spell wakes it and lands inside it. They used to be shown the raw word
+// "starting" in the error box and had to press the button again — which worked, and
+// taught them the app is unreliable. Now the page waits for the server it just woke.
+const STARTING_RETRIES = 12;   // ≈ 9 s at the delay below — a cold Passenger boot
+const STARTING_DELAY_MS = 750;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const lang = localStorage.getItem('twinflow.loginLang') || 'en';
+  const err = document.getElementById('lg-error');
+  const btn = document.querySelector('#login-form button[type="submit"]');
+  err.hidden = true;
+  try {
+    const body = JSON.stringify({
+      username: document.getElementById('lg-user').value.trim(),
+      password: document.getElementById('lg-pass').value,
+    });
+    let r, d;
+    for (let attempt = 0; ; attempt++) {
+      r = await fetch('api/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      });
+      d = await r.json();
+      // 503 + "starting" is the boot window, and only that — a wrong password is a
+      // 401 and must never be retried
+      if (!(r.status === 503 && d.error === 'starting')) break;
+      if (attempt >= STARTING_RETRIES) { d = { ok: false, error: LOGIN_DICT[lang].startingSlow }; break; }
+      err.textContent = LOGIN_DICT[lang].starting;
+      err.classList.add('is-waiting'); // waiting is not failing — neutral, not red
+      err.hidden = false;
+      if (btn) btn.disabled = true;
+      await sleep(STARTING_DELAY_MS);
+    }
+    if (btn) btn.disabled = false;
+    err.classList.remove('is-waiting');
+    if (d.ok) {
+      // a hint for index.html, not a credential: the session cookie is HttpOnly, so
+      // the app cannot tell whether it is signed in without asking the server, and
+      // that round trip is what used to flash the empty shell before the redirect
+      try { localStorage.setItem('twinflow.signedIn', '1'); } catch { /* private mode */ }
+      location.href = './';
+      return;
+    }
+    err.textContent = d.error || LOGIN_DICT[lang].errorGeneric;
+    err.hidden = false;
+  } catch {
+    if (btn) btn.disabled = false; // a mid-retry network drop must not leave it stuck
+    err.classList.remove('is-waiting');
+    err.textContent = LOGIN_DICT[lang].errorUnreachable;
+    err.hidden = false;
+  }
+});
+</script>
+</body>
+</html>

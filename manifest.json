@@ -1,0 +1,23 @@
+{
+  "id": "./",
+  "name": "TwinFlow — Construção Industrializada",
+  "short_name": "TwinFlow",
+  "description": "Fio digital da construção industrializada: mapa de quantidades a partir de IFC, pedidos de produção à fábrica, logística just-in-time e montagem em obra.",
+  "lang": "pt-PT",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eceff4",
+  "theme_color": "#16212f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Digitalizar QR do elemento", "short_name": "Digitalizar", "url": "./?view=scan" },
+    { "name": "Pedidos de produção", "short_name": "Pedidos", "url": "./?view=orders" }
+  ]
+}
