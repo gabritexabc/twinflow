@@ -1,0 +1,25 @@
+# Runs the project's own check on every push and pull request.
+#
+# `npm run check` (tools/check-i18n.mjs) is the honest gate this repo relies on: it
+# imports both translation dictionaries the way the browser does, compares them
+# key-for-key against each other AND against every t()/data-i18n reference in the code,
+# checks placeholder parity, and parses every client module as an ES module — the class
+# of bug that twice reached production as a blank-key interface. See the header of
+# tools/check-i18n.mjs for why weaker checks (node --check, key-diffing) were not enough.
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run check

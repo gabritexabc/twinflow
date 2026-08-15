@@ -4,6 +4,8 @@ node_modules/
 # server-side data (created automatically at runtime — do not commit real project data)
 data/
 models/
+# throwaway instance made by tools/run-test-server.mjs
+.test-instance/
 
 # secrets — copy smtp-config.example.json instead
 smtp-config.json

@@ -1,5 +1,7 @@
 # TwinFlow — Digital Thread for Industrialized Construction
 
+[![check](https://github.com/gabritexabc/twinflow/actions/workflows/check.yml/badge.svg)](https://github.com/gabritexabc/twinflow/actions/workflows/check.yml)
+
 *(formerly IFCFlow — renamed because the app is really about giving every prefabricated
 component a digital twin that flows from the BIM model through the factory to the site.)*
 
